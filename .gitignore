@@ -1,0 +1,29 @@
+# Java
+backend/target/
+*.class
+*.log
+
+# Node
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+
+# IDE
+.idea/
+.vscode/
+*.iml
+.DS_Store
+
+
+# Secrets and local environment files
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+
+# Build output and dependencies
+**/target/
+**/node_modules/
+**/dist/
+
