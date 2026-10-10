@@ -1,97 +1,158 @@
-# QueueLess — Full-stack virtual queue management MVP
+# QueueLess — Smart Queue Management System
 
-QueueLess lets a business create a queue, customers join remotely and receive a token, and staff call the next customer or mark a visit completed, skipped, or cancelled.
+A full-stack web application for managing queues digitally. QueueLess allows users to view available queues and join them, while authorized staff manage queue operations through role-based access control.
 
-## Included features
-- Create and list queues (clinic, salon, service centre, etc.)
-- Join a queue with a customer name and optional phone number
-- Automatic token numbers assigned under a database row lock
-- Live-ish dashboard refresh (polls every 5 seconds)
-- Staff actions: call next, complete, skip, cancel
-- Waiting count and estimated wait time (configurable average minutes per customer)
-- Request validation and readable API errors
-- React + Vite frontend, Spring Boot REST backend, PostgreSQL
-- Docker Compose for PostgreSQL
+**Live Demo:** https://queueless-1-90mf.onrender.com/  
+**GitHub Repository:** https://github.com/arti500/QueueLess
 
-> This is a portfolio-ready MVP, not a production deployment. Before real-world use, add authentication/authorization for staff, rate limiting, audit logging, privacy controls, monitoring, and deployment secrets management. The current staff actions are intentionally open for local development.
+## Features
 
-## Requirements
-- JDK 21
-- Maven 3.9+
-- Node.js 20+
-- PostgreSQL 15+ OR Docker Desktop
+- **Queue Management:** Create and manage queues with authorized staff accounts.
+- **Digital Queue Joining:** Users can join available queues online.
+- **Queue Monitoring:** View queues and their entries.
+- **Queue Operations:** Authorized staff can call the next entry and update entry statuses.
+- **Authentication:** JWT-based authentication.
+- **Role-Based Authorization:** Separate permissions for staff and administrators.
+- **Persistent Storage:** PostgreSQL database.
+- **Full-Stack Deployment:** React frontend and Spring Boot backend served through a single public URL.
 
-## 1. Start PostgreSQL
-From the project root:
-```bash
-docker compose up -d postgres
+## Tech Stack
+
+| Layer | Technologies |
+|---|---|
+| Frontend | React.js, Vite, JavaScript |
+| Backend | Java 21, Spring Boot 3.5.5 |
+| Security | Spring Security, JWT, BCrypt |
+| Database | PostgreSQL, Spring Data JPA / Hibernate |
+| Build Tools | Maven, npm |
+| Deployment | Render, Neon |
+
+## Architecture
+
+```text
+User / Staff / Admin
+        |
+        v
+ React Frontend (Vite)
+        |
+        v
+ Spring Boot REST API
+        |
+        v
+ Spring Security + JWT
+        |
+        v
+ Spring Data JPA / Hibernate
+        |
+        v
+ PostgreSQL Database
 ```
-This creates database `queueless_db`, user `queueless`, password `queueless_dev_password` on host port 5433 (container port 5432), avoiding a conflict with a locally installed PostgreSQL server.
 
-If you prefer your already-installed PostgreSQL instead, set `DB_URL=jdbc:postgresql://localhost:5433/queueless_db`, `DB_USERNAME` to your database user, and `DB_PASSWORD` to your existing password (or edit `application.properties`).
+The React frontend communicates with the Spring Boot REST API. Spring Security protects restricted operations, and PostgreSQL stores application data.
 
-## 2. Start backend
+## API Overview
+
+Base URL: `/api/v1`
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| GET | `/health` | Check backend health |
+| POST | `/auth/login` | Authenticate a user |
+| GET | `/queues` | List queues |
+| GET | `/queues/{queueId}` | Get queue details |
+| GET | `/queues/{queueId}/entries` | View queue entries |
+| POST | `/queues/{queueId}/join` | Join a queue |
+| POST | `/queues` | Create a queue — staff/admin |
+| POST | `/queues/{queueId}/call-next` | Call next entry — staff/admin |
+| PATCH | `/queues/{queueId}/entries/{entryId}/status` | Update entry status — staff/admin |
+
+Administrative endpoints are protected by role-based authorization.
+
+## Run Locally
+
+### Prerequisites
+
+- Java 21 or compatible JDK
+- Maven
+- Node.js and npm
+- PostgreSQL
+
+### 1. Clone the repository
+
 ```bash
-cd backend
+git clone https://github.com/arti500/QueueLess.git
+cd QueueLess
+```
+
+### 2. Configure the database
+
+Create a PostgreSQL database named `queueless_db`.
+
+Configure these environment variables for the backend:
+
+```text
+DB_URL=jdbc:postgresql://localhost:5432/queueless_db
+DB_USERNAME=postgres
+DB_PASSWORD=your_database_password
+JWT_SECRET=your_generated_secret
+JWT_TTL_SECONDS=3600
+SERVER_PORT=8081
+```
+
+Use a securely generated JWT secret and your own database credentials.
+
+### 3. Start the backend
+
+From the `backend` directory, run:
+
+```bash
 mvn spring-boot:run
 ```
-Backend: http://localhost:8081
-Health check: http://localhost:8081/api/v1/health
-API documentation is described in `docs/API.md`.
 
-Default DB settings are in `backend/src/main/resources/application.properties`. Environment variables override them:
-- `DB_URL` (default `jdbc:postgresql://localhost:5433/queueless_db`)
-- `DB_USERNAME` (default `queueless`)
-- `DB_PASSWORD` (default `queueless_dev_password`)
+Backend health endpoint:
 
-If using your own local postgres user/password, edit these values or export environment variables.
+`http://localhost:8081/api/v1/health`
 
-## 3. Start frontend
+### 4. Start the frontend
+
 Open another terminal:
+
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
-Open the URL printed by Vite (normally http://localhost:5173).
 
-## Suggested demo
-1. Create a queue named `General Consultation`, business `City Clinic`, capacity `30`.
-2. Select it and join as a customer (e.g. `Asha Patil`).
-3. Join a second customer in another tab or from the same screen.
-4. In the staff panel, press **Call next**, then **Complete** or **Skip**.
-5. Watch the queue counts and estimated wait update.
+Open the local URL printed by Vite, normally:
 
-## Notes
-- Queue token numbering starts at 1 and increases for each queue.
-- A queue's capacity limits the number of customers currently waiting or called; completed, skipped, and cancelled entries do not count toward capacity.
-- Estimated waiting time = number of people waiting ahead × configured average service time (default 5 minutes). It is an estimate, not a promise.
-- Hibernate schema update is enabled for local development. Use managed migrations (Flyway/Liquibase) for production.
+`http://localhost:5173`
 
+Configure any required administrator bootstrap credentials according to the application's environment configuration.
 
-## Security (JWT + roles)
+## Deployment
 
-This version includes Spring Security, BCrypt password hashing, stateless JWT authentication, and role-based API authorization. Public customer actions are queue reads and joining a queue. Creating queues, calling next, and changing entry status require STAFF or ADMIN. `/api/v1/admin/**` requires ADMIN.
+- **Application hosting:** Render
+- **Database hosting:** Neon PostgreSQL
+- **Public application:** https://queueless-1-90mf.onrender.com/
 
-### First admin account
+Production credentials and secrets should be configured through environment variables, never committed to the repository.
 
-Set these environment variables before starting the backend (do not commit real credentials):
+## Security
 
-PowerShell example:
+- JWT-based authentication
+- Role-based access control for staff and administrators
+- BCrypt password hashing
+- Restricted queue-management operations
+- Environment-based database credentials and JWT secrets
 
-```powershell
-$env:APP_ADMIN_USERNAME = "admin"
-$env:APP_ADMIN_PASSWORD = "use-a-unique-password-at-least-12-chars"
-$env:JWT_SECRET = [Convert]::ToBase64String([System.Security.Cryptography.RandomNumberGenerator]::GetBytes(48))
-mvn spring-boot:run
-```
+## Future Enhancements
 
-The bootstrap process creates the admin account only if that username does not already exist. Save the JWT_SECRET securely; changing it invalidates existing tokens. Log in in the frontend with that account. Create staff accounts only through a trusted/admin-only workflow; public staff registration is intentionally not exposed.
+- Real-time queue updates
+- Email or SMS notifications
+- Estimated waiting-time display
+- Queue analytics dashboard
+- Automated integration tests
 
-### API authentication
+---
 
-`POST /api/v1/auth/login` with `{ "username": "admin", "password": "..." }` returns an access token. Send it as `Authorization: Bearer <token>` for protected operations. `GET /api/v1/auth/me` returns the current identity. Access token lifetime defaults to 3600 seconds (`JWT_TTL_SECONDS`).
-
-### Deployment safety
-
-The included default JWT key and PostgreSQL credentials are for local development only. For deployment, set unique strong secrets and database credentials via environment variables, use HTTPS, configure the exact frontend origin, use database migrations instead of `ddl-auto=update`, and review logs/backups/rate limits before exposing publicly. This archive is a deployment-ready starting point, but must be built and smoke-tested in your target environment before production use.
+**Built with Java, Spring Boot, React, and PostgreSQL.**
